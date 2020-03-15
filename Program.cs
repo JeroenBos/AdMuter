@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Configuration;
 
 namespace AdMuter
 {
@@ -10,10 +11,17 @@ namespace AdMuter
         const int UnknownVolume = -1;
         static bool mutedByMe = false;
         static int originalVolumne = UnknownVolume;
+        static string phraseToGrep = "No trigger";
         async static Task Main(string[] args)
         {
-            while (true)
+            for (int i = 0; ; i++)
             {
+                // at the start and subsequently every 10 seconds, read config file:
+                if ((i % 100) == 0)
+                {
+                    readTrigger();
+                }
+
                 if (adsArePlaying() && !mutedByMe)
                 {
                     originalVolumne = GetVolumeLevel();
@@ -32,9 +40,26 @@ namespace AdMuter
             }
         }
 
+        static void readTrigger()
+        {
+            ConfigurationManager.RefreshSection("appSettings");
+            phraseToGrep = ConfigurationManager.AppSettings["phraseToGrep"];
+            if (phraseToGrep == null)
+            {
+                Console.WriteLine("Phrase not found");
+                phraseToGrep = "No trigger";
+            }
+            else if (phraseToGrep.Contains("'"))
+            {
+                Console.WriteLine("The trigger may not contain single quotes");
+                phraseToGrep = "No trigger";
+            }
+            Console.WriteLine("Reread: " + phraseToGrep);
+        }
+
         static bool adsArePlaying()
         {
-            string result = runBash("wmctrl -l | grep Chrome | grep bash");
+            string result = runBash($"wmctrl -l | grep Chrome | grep '{phraseToGrep}'");
             return !string.IsNullOrWhiteSpace(result);
         }
 
