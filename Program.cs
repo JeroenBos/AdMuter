@@ -8,7 +8,7 @@ namespace AdMuter
     class Program
     {
         const int UnknownVolume = -1;
-        static bool mutedByMe => originalVolumne == UnknownVolume;
+        static bool mutedByMe = false;
         static int originalVolumne = UnknownVolume;
         async static Task Main(string[] args)
         {
@@ -20,11 +20,13 @@ namespace AdMuter
                     if (originalVolumne != UnknownVolume)
                     {
                         Mute();
+                        mutedByMe = true;
                     }
                 }
-                else if (!adsArePlaying() && mutedByMe)
+                else if (!adsArePlaying() && mutedByMe && originalVolumne != UnknownVolume)
                 {
                     Unmute(originalVolumne);
+                    mutedByMe = false;
                 }
                 await Task.Delay(100);
             }
