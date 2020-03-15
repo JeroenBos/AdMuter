@@ -59,7 +59,7 @@ namespace AdMuter
 
         static bool adsArePlaying()
         {
-            string result = runBash($"wmctrl -l | grep Chrome | grep '{phraseToGrep}'");
+            string result = runBash($"wmctrl -l | grep Chrome | grep -i '{phraseToGrep}'");
             return !string.IsNullOrWhiteSpace(result);
         }
 
