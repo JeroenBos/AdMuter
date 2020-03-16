@@ -10,7 +10,7 @@ namespace AdMuter
     {
         const int UnknownVolume = -1;
         static bool mutedByMe = false;
-        static int originalVolumne = UnknownVolume;
+        static int originalVolume = UnknownVolume;
         static string phraseToGrep = "No trigger";
         async static Task Main(string[] args)
         {
@@ -24,16 +24,16 @@ namespace AdMuter
 
                 if (adsArePlaying() && !mutedByMe)
                 {
-                    originalVolumne = GetVolumeLevel();
-                    if (originalVolumne != UnknownVolume)
+                    originalVolume = GetVolumeLevel();
+                    if (originalVolume != UnknownVolume)
                     {
                         Mute();
                         mutedByMe = true;
                     }
                 }
-                else if (!adsArePlaying() && mutedByMe && originalVolumne != UnknownVolume)
+                else if (!adsArePlaying() && mutedByMe && originalVolume != UnknownVolume)
                 {
-                    Unmute(originalVolumne);
+                    Unmute(originalVolume);
                     mutedByMe = false;
                 }
                 await Task.Delay(100);
@@ -63,12 +63,12 @@ namespace AdMuter
             return !string.IsNullOrWhiteSpace(result);
         }
 
-        private static readonly Regex extractVolumnePattern = new Regex(".*\\[(?<volume>[0-9]+)%\\].*");
+        private static readonly Regex extractVolumePattern = new Regex(".*\\[(?<volume>[0-9]+)%\\].*");
         public static int GetVolumeLevel()
         {
             string output = runBash("amixer -c 0 get Master playback");
 
-            Match match = extractVolumnePattern.Match(output);
+            Match match = extractVolumePattern.Match(output);
             string? volume = match?.Groups["volume"].Value;
             if (volume != null && int.TryParse(volume, out int result))
                 return result;
