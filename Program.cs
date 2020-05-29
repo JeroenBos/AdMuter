@@ -54,7 +54,7 @@ namespace AdMuter
                 Console.WriteLine("The trigger may not contain single quotes");
                 phraseToGrep = "No trigger";
             }
-            Console.WriteLine("Reread: " + phraseToGrep);
+            Console.WriteLine($"Reread config: phraseToGrep='{phraseToGrep}'");
         }
 
         static bool adsArePlaying()
