@@ -3,38 +3,39 @@ using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Configuration;
+using AdMuter.AudioControllers;
 
 namespace AdMuter
 {
     class Program
     {
-        const int UnknownVolume = -1;
-        static bool mutedByMe = false;
-        static int originalVolume = UnknownVolume;
+        internal const int UnknownVolume = -1;
         static string phraseToGrep = "No trigger";
+
         async static Task Main(string[] args)
         {
+            IMuteStateTracker? currentDevice = null;
             for (int i = 0; ; i++)
             {
-                // at the start and subsequently every 10 seconds, read config file:
                 if ((i % 100) == 0)
                 {
+                    // at the start and subsequently every 10 seconds, read config file:
                     readTrigger();
+                    // and check if the current device is still the running one
+                    updateCurrentDevice(ref currentDevice);
                 }
+                log();
 
-                if (adsArePlaying() && !mutedByMe)
+                if (currentDevice != null)
                 {
-                    originalVolume = GetVolumeLevel();
-                    if (originalVolume != UnknownVolume)
+                    if (adsArePlaying())
                     {
-                        Mute();
-                        mutedByMe = true;
+                        currentDevice.Mute();
                     }
-                }
-                else if (!adsArePlaying() && mutedByMe && originalVolume != UnknownVolume)
-                {
-                    Unmute(originalVolume);
-                    mutedByMe = false;
+                    else if (!adsArePlaying())
+                    {
+                        currentDevice.Unmute();
+                    }
                 }
                 await Task.Delay(100);
             }
@@ -57,32 +58,54 @@ namespace AdMuter
             Console.WriteLine($"Reread config: phraseToGrep='{phraseToGrep}'");
         }
 
+        static bool logTrace
+        {
+            get
+            {
+                string log_all_greps = ConfigurationManager.AppSettings["log_level"];
+                return log_all_greps?.ToLower() == "trace";
+            }
+        }
         static bool adsArePlaying()
         {
             string result = runBash($"wmctrl -l | grep Chrome | egrep -i '{phraseToGrep}'");
             return !string.IsNullOrWhiteSpace(result);
         }
+        static string previous_command_output = "";
 
-        private static readonly Regex extractVolumePattern = new Regex(".*\\[(?<volume>[0-9]+)%\\].*");
-        public static int GetVolumeLevel()
+        static void log()
         {
-            string output = runBash("amixer -c 0 get Master playback");
+            if (!logTrace)
+                return;
 
-            Match match = extractVolumePattern.Match(output);
-            string? volume = match?.Groups["volume"].Value;
-            if (volume != null && int.TryParse(volume, out int result))
-                return result;
-            return UnknownVolume;
-        }
-        public static void Mute()
-        {
-            runBash("amixer -c 0 set Master playback 0%");
+            string result = runBash($"wmctrl -l | grep Chrome");
+            if (logTrace && previous_command_output != result)
+            {
+                Console.WriteLine(result);
+                previous_command_output = result;
+            }
         }
 
-        public static void Unmute(int volumePercentage)
+        private static void updateCurrentDevice(ref IMuteStateTracker? device)
         {
-            runBash($"amixer -c 0 set Master playback {volumePercentage}%");
+            string sink = Pulseaudio.getRunningSink();
+            if (device == null)
+            {
+                if (!string.IsNullOrWhiteSpace(sink))
+                {
+                    device = new AudioControllerStateTracker(new Pulseaudio(sink));
+                }
+            }
+            else if (device.Controller is Pulseaudio p)
+            {
+                if (p.Sink != sink)
+                {
+                    device.Dispose();
+                    device = new AudioControllerStateTracker(new Pulseaudio(sink));
+                }
+            }
         }
+
 
         public static string runBash(string cmd)
         {
@@ -105,4 +128,6 @@ namespace AdMuter
             return result;
         }
     }
+
+
 }
