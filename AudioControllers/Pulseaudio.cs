@@ -6,16 +6,7 @@ namespace AdMuter.AudioControllers
     class Pulseaudio : IAudioController
     {
         private static readonly Regex extractVolumePattern = new Regex(".*\\[(?<volume>[0-9]+)%\\].*");
-        public int GetVolumeLevel()
-        {
-            string output = Program.runBash("amixer -c 0 get Master playback");
 
-            Match match = extractVolumePattern.Match(output);
-            string? volume = match?.Groups["volume"].Value;
-            if (volume != null && int.TryParse(volume, out int result))
-                return result;
-            return UnknownVolume;
-        }
         internal static string getRunningSink()
         {
             return runBash(@"pactl list short | grep RUNNING | sed -e 's,^\([0-9][0-9]*\)[^0-9].*,\1,'").Replace("\n", "");
@@ -32,7 +23,7 @@ namespace AdMuter.AudioControllers
         {
             runBash($"pactl set-sink-mute {Sink} 0");
         }
-
+        int IAudioController.GetVolumeLevel() => UnknownVolume; // this property isn't used here, but when using the Amixer package
         void IAudioController.Unmute(int originalVolumePercentage) => Unmute();
     }
 }
