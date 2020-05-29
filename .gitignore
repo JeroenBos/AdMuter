@@ -232,3 +232,5 @@ _Pvt_Extensions
 .testresults
 **/dist/**
 **/launchSettings.json
+
+.vscode/numbered-bookmarks.json
