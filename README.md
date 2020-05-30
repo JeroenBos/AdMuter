@@ -6,6 +6,6 @@ My setup: Ubuntu 18.04, and I play spotify in chrome, and it must be the active 
 
 To start it in the background I do:
 
-    $($HOME/git/AdMuter/bin/Debug/netcoreapp3.1/AdMuter &>/dev/null &) && disown
+    nohup $HOME/git/AdMuter/bin/Debug/netcoreapp3.1/AdMuter &>/dev/null &
 
 
